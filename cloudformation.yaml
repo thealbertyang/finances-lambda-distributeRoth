@@ -40,7 +40,7 @@ Resources:
   CustomRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: my-lambda-role
+      RoleName: my-lambda-role-2
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
