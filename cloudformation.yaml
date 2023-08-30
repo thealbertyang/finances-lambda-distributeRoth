@@ -1,0 +1,61 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Distribute Roth 
+Resources:
+  distributeRothLambdaEventRule:
+    Type: AWS::Events::Rule
+    Properties:
+      EventBusName: default
+      Name: distributeRoth
+      Description: Cronjob request to distribute Roth
+      ScheduleExpression: cron(0 0 ? * FRI *)
+      State: ENABLED
+      Targets:
+        - Id: "distributeRothRule"
+          Arn: !GetAtt [distributeRothLambda, Arn]
+  distributeRothLambda:
+    Type: "AWS::Lambda::Function"
+    Properties:
+      FunctionName: distributeRoth
+      Handler: index.handler
+      Runtime: nodejs14.x
+      Code:
+        S3Bucket: finances-deployments
+        S3Key: lambdas/distributeRoth.zip
+      Description: Makes a request to save month's finances
+      MemorySize: 128
+      Timeout: 60
+      Role: !GetAtt CustomRole.Arn
+  distributeRothLambdaLogs:
+    Type: "AWS::Logs::LogGroup"
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/distributeRoth"
+      RetentionInDays: 90
+  distributeRothLambdaEventRulePermission:
+    Type: "AWS::Lambda::Permission"
+    Properties:
+      FunctionName: !GetAtt [distributeRothLambda, Arn]
+      Action: "lambda:InvokeFunction"
+      Principal: "events.amazonaws.com"
+      SourceArn: !GetAtt [distributeRothLambdaEventRule, Arn]
+  CustomRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: my-lambda-role
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action: "sts:AssumeRole"
+            Principal:
+              Service: lambda.amazonaws.com
+      Policies:
+        - PolicyName: WriteLogs
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "logs:CreateLogGroup"
+                  - "logs:CreateLogStream"
+                  - "logs:PutLogEvents"
+                Resource: "arn:aws:logs:*:*:*"
